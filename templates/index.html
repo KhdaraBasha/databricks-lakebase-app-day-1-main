@@ -224,6 +224,37 @@
       transform: translateY(0);
     }
     
+    .symbol-cell {
+      font-weight: 700;
+      color: #06b6d4;
+      font-size: 16px;
+    }
+    
+    .company-cell {
+      font-weight: 500;
+      color: #4b5563;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .price-cell {
+      font-weight: 600;
+      color: #1f2937;
+      font-size: 15px;
+    }
+    
+    .positive-change {
+      font-weight: 600;
+      color: #22c55e;
+    }
+    
+    .negative-change {
+      font-weight: 600;
+      color: #ef4444;
+    }
+    
     @media (max-width: 768px) {
       body {
         padding: 20px 16px;
@@ -266,9 +297,12 @@
     <thead>
       <tr>
         <th>Symbol</th>
-        <th>Email</th>
-        <th>Latest price</th>
-        <th>Updated</th>
+        <th>Company</th>
+        <th>Price</th>
+        <th>Change %</th>
+        <th>Day Range</th>
+        <th>Volume</th>
+        <th>Market Cap</th>
         <th>Actions</th>
       </tr>
     </thead>

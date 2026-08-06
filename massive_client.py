@@ -85,3 +85,19 @@ class MassiveClient:
         """
         data = self.get(f"/v2/aggs/ticker/{symbol}/prev")
         return data
+
+    def get_ticker_details(self, symbol: str) -> dict:
+        """
+        Fetch detailed information about a ticker including company name,
+        market cap, description, and other fundamentals.
+        """
+        data = self.get(f"/v3/reference/tickers/{symbol}")
+        return data
+
+    def get_ticker_snapshot(self, symbol: str) -> dict:
+        """
+        Fetch real-time snapshot data including current price, volume,
+        day high/low, and other intraday metrics.
+        """
+        data = self.get(f"/v2/snapshot/locale/us/markets/stocks/tickers/{symbol}")
+        return data
