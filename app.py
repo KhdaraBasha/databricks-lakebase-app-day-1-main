@@ -28,6 +28,7 @@ _w = WorkspaceClient()
 
 TABLE_NAME = os.environ.get("MASSIVE_TABLE_NAME", "massive_records")
 WATCHLIST_TABLE_NAME = os.environ.get("WATCHLIST_TABLE_NAME", "watchlist")
+NEWS_TABLE_NAME = os.environ.get("NEWS_TABLE_NAME", "ticker_news")
 
 # Basic stock ticker shape check: 1-10 uppercase letters, with an optional
 # ".X" or ".XX" share-class suffix (e.g. "BRK.B"). This rejects obviously
@@ -80,6 +81,31 @@ def ensure_watchlist_table():
         lakebase.run_write(f"ALTER TABLE {WATCHLIST_TABLE_NAME} ADD COLUMN IF NOT EXISTS change_percent NUMERIC")
     except Exception:
         pass  # Columns already exist
+
+
+def ensure_news_table():
+    """Create the ticker news table in Lakebase if it doesn't exist yet."""
+    lakebase.run_write(
+        f"""
+        CREATE TABLE IF NOT EXISTS {NEWS_TABLE_NAME} (
+            id SERIAL PRIMARY KEY,
+            symbol TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            author TEXT,
+            published_utc TIMESTAMPTZ NOT NULL,
+            article_url TEXT,
+            image_url TEXT,
+            source TEXT,
+            fetched_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+        """
+    )
+    # Create index for faster lookups by symbol
+    try:
+        lakebase.run_write(f"CREATE INDEX IF NOT EXISTS idx_news_symbol ON {NEWS_TABLE_NAME}(symbol)")
+    except Exception:
+        pass
 
 
 def _current_user_email() -> str:
@@ -248,6 +274,90 @@ def refresh_stock(symbol):
         "company_name": company_name,
         "change_percent": change_percent
     })
+
+
+@app.route("/watchlist/<symbol>", methods=["DELETE"])
+def delete_from_watchlist(symbol):
+    """
+    Remove a stock symbol from the current user's watchlist.
+    """
+    ensure_watchlist_table()
+    email = _current_user_email()
+    symbol = symbol.strip().upper() if isinstance(symbol, str) else ""
+    
+    if not symbol:
+        return jsonify({"error": "Invalid symbol"}), 400
+    
+    lakebase.run_write(
+        f"DELETE FROM {WATCHLIST_TABLE_NAME} WHERE symbol = %s AND email = %s",
+        (symbol, email),
+    )
+    
+    return jsonify({"deleted": symbol})
+
+
+@app.route("/news/<symbol>", methods=["GET"])
+def get_news(symbol):
+    """
+    Fetch and store news for a ticker symbol, then return recent news.
+    """
+    ensure_news_table()
+    symbol = symbol.strip().upper() if isinstance(symbol, str) else ""
+    
+    if not symbol:
+        return jsonify({"error": "Invalid symbol"}), 400
+    
+    client = MassiveClient()
+    try:
+        # Fetch news from Polygon API
+        news_data = client.get_ticker_news(symbol, limit=10)
+        
+        if news_data.get("status") == "OK" and "results" in news_data:
+            articles = news_data["results"]
+            
+            # Store news in database
+            for article in articles:
+                # Check if article already exists
+                existing = lakebase.run_query(
+                    f"SELECT id FROM {NEWS_TABLE_NAME} WHERE article_url = %s",
+                    (article.get("article_url"),)
+                )
+                
+                if not existing:
+                    lakebase.run_write(
+                        f"""INSERT INTO {NEWS_TABLE_NAME} 
+                            (symbol, title, description, author, published_utc, 
+                             article_url, image_url, source)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+                        (
+                            symbol,
+                            article.get("title"),
+                            article.get("description"),
+                            article.get("author"),
+                            article.get("published_utc"),
+                            article.get("article_url"),
+                            article.get("image_url"),
+                            article.get("publisher", {}).get("name")
+                        )
+                    )
+        
+        # Return stored news for this symbol (most recent 10)
+        news = lakebase.run_query(
+            f"""SELECT title, description, author, published_utc, article_url, 
+                      image_url, source, fetched_at
+               FROM {NEWS_TABLE_NAME}
+               WHERE symbol = %s
+               ORDER BY published_utc DESC
+               LIMIT 10""",
+            (symbol,)
+        )
+        
+        return jsonify({"symbol": symbol, "news": news})
+    
+    except requests.HTTPError as e:
+        return jsonify({"error": f"Failed to fetch news: {str(e)}"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Error: {str(e)}"}), 500
 
 
 @app.route("/watchlist", methods=["POST"])

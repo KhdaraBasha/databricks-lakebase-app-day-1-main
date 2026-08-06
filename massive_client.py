@@ -101,3 +101,13 @@ class MassiveClient:
         """
         data = self.get(f"/v2/snapshot/locale/us/markets/stocks/tickers/{symbol}")
         return data
+
+    def get_ticker_news(self, symbol: str, limit: int = 10) -> dict:
+        """
+        Fetch recent news articles for a ticker symbol.
+        Returns up to 'limit' news articles with title, description, 
+        published date, source, and URL.
+        """
+        params = {"ticker": symbol, "limit": limit, "order": "desc"}
+        data = self.get("/v2/reference/news", params=params)
+        return data
