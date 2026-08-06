@@ -170,6 +170,86 @@ def get_watchlist():
     return jsonify(rows)
 
 
+@app.route("/watchlist/<symbol>/refresh", methods=["POST"])
+def refresh_stock(symbol):
+    """
+    Re-fetch rich data for an existing stock in the watchlist.
+    """
+    ensure_watchlist_table()
+    email = _current_user_email()
+    symbol = symbol.strip().upper() if isinstance(symbol, str) else ""
+    
+    if not symbol:
+        return jsonify({"error": "Invalid symbol"}), 400
+    
+    # Use the same logic as add_to_watchlist to fetch rich data
+    client = MassiveClient()
+    try:
+        price_data = client.get_latest_price(symbol)
+        price = _extract_latest_price(price_data)
+        if price is None:
+            return jsonify({"error": f"No price data available for ticker: {symbol}"}), 400
+        
+        company_name = None
+        market_cap = None
+        try:
+            details = client.get_ticker_details(symbol)
+            if details.get("status") == "OK" and "results" in details:
+                result = details["results"]
+                company_name = result.get("name")
+                market_cap = result.get("market_cap")
+        except Exception:
+            pass
+        
+        day_high = None
+        day_low = None
+        volume = None
+        prev_close = None
+        change_percent = None
+        try:
+            snapshot = client.get_ticker_snapshot(symbol)
+            if snapshot.get("status") == "OK" and "ticker" in snapshot:
+                ticker_data = snapshot["ticker"]
+                day_data = ticker_data.get("day", {})
+                prev_data = ticker_data.get("prevDay", {})
+                
+                day_high = day_data.get("h")
+                day_low = day_data.get("l")
+                volume = day_data.get("v")
+                prev_close = prev_data.get("c")
+                
+                if prev_close and price:
+                    change_percent = ((price - prev_close) / prev_close) * 100
+        except Exception:
+            pass
+    except requests.HTTPError:
+        return jsonify({"error": f"Unknown ticker symbol: {symbol}"}), 400
+    
+    lakebase.run_write(
+        f"""
+        UPDATE {WATCHLIST_TABLE_NAME}
+        SET latest_price = %s,
+            company_name = %s,
+            market_cap = %s,
+            day_high = %s,
+            day_low = %s,
+            volume = %s,
+            prev_close = %s,
+            change_percent = %s,
+            updated_at = now()
+        WHERE symbol = %s AND email = %s
+        """,
+        (price, company_name, market_cap, day_high, day_low, volume, prev_close, change_percent, symbol, email),
+    )
+    
+    return jsonify({
+        "symbol": symbol,
+        "latest_price": price,
+        "company_name": company_name,
+        "change_percent": change_percent
+    })
+
+
 @app.route("/watchlist", methods=["POST"])
 def add_to_watchlist():
     """

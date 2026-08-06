@@ -224,6 +224,32 @@
       transform: translateY(0);
     }
     
+    .refresh-btn {
+      margin: 0 4px 0 0;
+      padding: 8px 16px;
+      font-size: 13px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+    
+    .refresh-btn:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5);
+    }
+    
+    .refresh-btn:active {
+      transform: translateY(0);
+    }
+    
     .symbol-cell {
       font-weight: 700;
       color: #06b6d4;
@@ -326,11 +352,61 @@
         watchlistBody.innerHTML = "";
         data.forEach((row) => {
           const tr = document.createElement("tr");
+          
+          // Format price
           const price = row.latest_price !== null && row.latest_price !== undefined
-            ? Number(row.latest_price).toFixed(2)
+            ? "$" + Number(row.latest_price).toFixed(2)
             : "-";
-          const updated = row.updated_at ? new Date(row.updated_at).toLocaleString() : "-";
-          tr.innerHTML = `<td>${row.symbol}</td><td>${row.email || "-"}</td><td>${price}</td><td>${updated}</td>`;
+          
+          // Format company name
+          const companyName = row.company_name || row.symbol;
+          
+          // Format change percent
+          let changePercent = "-";
+          let changeClass = "";
+          if (row.change_percent !== null && row.change_percent !== undefined) {
+            const change = Number(row.change_percent);
+            changePercent = (change >= 0 ? "+" : "") + change.toFixed(2) + "%";
+            changeClass = change >= 0 ? "positive-change" : "negative-change";
+          }
+          
+          // Format day range
+          let dayRange = "-";
+          if (row.day_low && row.day_high) {
+            dayRange = `${Number(row.day_low).toFixed(2)} - ${Number(row.day_high).toFixed(2)}`;
+          }
+          
+          // Format volume
+          const volume = row.volume ? Number(row.volume).toLocaleString() : "-";
+          
+          // Format market cap
+          let marketCap = "-";
+          if (row.market_cap) {
+            const cap = Number(row.market_cap);
+            if (cap >= 1e12) {
+              marketCap = "$" + (cap / 1e12).toFixed(2) + "T";
+            } else if (cap >= 1e9) {
+              marketCap = "$" + (cap / 1e9).toFixed(2) + "B";
+            } else if (cap >= 1e6) {
+              marketCap = "$" + (cap / 1e6).toFixed(2) + "M";
+            } else {
+              marketCap = "$" + cap.toLocaleString();
+            }
+          }
+          
+          tr.innerHTML = `
+            <td class="symbol-cell">${row.symbol}</td>
+            <td class="company-cell">${companyName}</td>
+            <td class="price-cell">${price}</td>
+            <td class="${changeClass}">${changePercent}</td>
+            <td>${dayRange}</td>
+            <td>${volume}</td>
+            <td>${marketCap}</td>
+            <td>
+              <button class="refresh-btn" onclick="refreshStock('${row.symbol}')">Refresh</button>
+              <button class="delete-btn" onclick="deleteStock('${row.symbol}')">Delete</button>
+            </td>
+          `;
           watchlistBody.appendChild(tr);
         });
       } catch (err) {
