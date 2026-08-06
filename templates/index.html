@@ -4,30 +4,264 @@
   <meta charset="UTF-8">
   <title>Massive Stock Watchlist</title>
   <style>
-    body { font-family: -apple-system, Arial, sans-serif; max-width: 560px; margin: 60px auto; color: #222; }
-    h1 { font-size: 20px; }
-    label { display: block; margin-top: 16px; font-weight: 600; }
-    input[type="text"] { width: 100%; padding: 8px; margin-top: 6px; box-sizing: border-box; }
-    button { margin-top: 16px; padding: 8px 16px; cursor: pointer; }
-    #result { margin-top: 20px; white-space: pre-wrap; background: #f6f6f6; padding: 12px; border-radius: 6px; min-height: 20px; }
-    .hint { color: #777; font-size: 13px; margin-top: 4px; }
-    table { width: 100%; margin-top: 24px; border-collapse: collapse; }
-    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
-    th { font-size: 13px; color: #555; text-transform: uppercase; }
+    * { box-sizing: border-box; }
+    
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+      max-width: 900px; 
+      margin: 0 auto; 
+      padding: 40px 20px;
+      background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+      min-height: 100vh;
+      color: #1a202c;
+    }
+    
+    h1 { 
+      font-size: 36px; 
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .container {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      margin-top: 24px;
+    }
+    
+    .hint { 
+      color: #ffffff;
+      font-size: 15px; 
+      margin-top: 8px;
+      line-height: 1.5;
+      opacity: 0.95;
+    }
+    
+    form {
+      margin-top: 0;
+    }
+    
+    label { 
+      display: block; 
+      margin-top: 20px;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #2d3748;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    form label:first-of-type {
+      margin-top: 0;
+    }
+    
+    input[type="text"] { 
+      width: 100%; 
+      padding: 14px 16px;
+      font-size: 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      background: #f7fafc;
+    }
+    
+    input[type="text"]:focus { 
+      outline: none;
+      border-color: #06b6d4;
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+    }
+    
+    input[type="text"]::placeholder {
+      color: #a0aec0;
+    }
+    
+    button { 
+      margin-top: 24px; 
+      padding: 14px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    button:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(6, 182, 212, 0.6);
+    }
+    
+    button:active { 
+      transform: translateY(0);
+    }
+    
+    #result { 
+      margin-top: 24px; 
+      padding: 16px 20px;
+      border-radius: 8px;
+      min-height: 20px;
+      font-size: 15px;
+      font-weight: 500;
+      background: #f0fdf4;
+      color: #166534;
+      border-left: 4px solid #22c55e;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    #result:empty {
+      display: none;
+    }
+    
+    .table-container {
+      margin-top: 40px;
+      overflow-x: auto;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    
+    table { 
+      width: 100%; 
+      border-collapse: separate;
+      border-spacing: 0;
+      background: #ffffff;
+    }
+    
+    thead {
+      background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    }
+    
+    th { 
+      text-align: left; 
+      padding: 16px 20px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border: none;
+    }
+    
+    th:first-child {
+      border-top-left-radius: 12px;
+    }
+    
+    th:last-child {
+      border-top-right-radius: 12px;
+    }
+    
+    tbody tr {
+      transition: background-color 0.2s ease;
+    }
+    
+    tbody tr:hover {
+      background-color: #f7fafc;
+    }
+    
+    td { 
+      text-align: left; 
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #2d3748;
+      font-size: 15px;
+    }
+    
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+    
+    tbody tr:last-child td:first-child {
+      border-bottom-left-radius: 12px;
+    }
+    
+    tbody tr:last-child td:last-child {
+      border-bottom-right-radius: 12px;
+    }
+    
+    td:nth-child(1) {
+      font-weight: 700;
+      color: #06b6d4;
+      font-size: 16px;
+    }
+    
+    td:nth-child(3) {
+      font-weight: 600;
+      color: #22c55e;
+    }
+    
+    .delete-btn {
+      margin: 0;
+      padding: 8px 16px;
+      font-size: 13px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    }
+    
+    .delete-btn:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+    }
+    
+    .delete-btn:active {
+      transform: translateY(0);
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 16px;
+      }
+      
+      h1 {
+        font-size: 28px;
+      }
+      
+      .container {
+        padding: 24px 20px;
+      }
+      
+      table {
+        font-size: 13px;
+      }
+      
+      th, td {
+        padding: 12px 10px;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>Stock Watchlist</h1>
+  <h1>📈 Stock Watchlist</h1>
   <p class="hint">Enter a single ticker symbol. This sends exactly ONE call to the Massive API to fetch the latest price, then adds it to your watchlist.</p>
 
-  <form id="stock-form">
-    <label for="symbol">Ticker symbol</label>
-    <input type="text" id="symbol" name="symbol" placeholder="AAPL" required>
-    <button type="submit">Add to watchlist</button>
-  </form>
+  <div class="container">
+    <form id="stock-form">
+      <label for="symbol">Ticker symbol</label>
+      <input type="text" id="symbol" name="symbol" placeholder="AAPL" required>
+      <button type="submit">Add to watchlist</button>
+    </form>
 
-  <div id="result"></div>
+    <div id="result"></div>
+  </div>
 
+  <div class="container table-container">
   <table id="watchlist-table">
     <thead>
       <tr>
@@ -35,10 +269,12 @@
         <th>Email</th>
         <th>Latest price</th>
         <th>Updated</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody id="watchlist-body"></tbody>
   </table>
+  </div>
 
   <script>
     const form = document.getElementById("stock-form");
@@ -91,6 +327,29 @@
         resultEl.textContent = "Request failed: " + err;
       }
     });
+
+    async function deleteStock(symbol) {
+      if (!confirm(`Are you sure you want to remove ${symbol} from your watchlist?`)) {
+        return;
+      }
+      
+      resultEl.textContent = `Removing ${symbol}...`;
+      
+      try {
+        const resp = await fetch(`/watchlist/${symbol}`, {
+          method: "DELETE",
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          resultEl.textContent = "Error: " + (data.error || resp.statusText);
+          return;
+        }
+        resultEl.textContent = `Removed ${symbol} from watchlist`;
+        loadWatchlist();
+      } catch (err) {
+        resultEl.textContent = "Request failed: " + err;
+      }
+    }
 
     loadWatchlist();
   </script>
